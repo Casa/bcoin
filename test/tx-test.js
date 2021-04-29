@@ -5,7 +5,7 @@
 
 const {inspect} = require('util');
 const {encoding} = require('bufio');
-const assert = require('bsert');
+const assert = require('./util/assert');
 const random = require('bcrypto/lib/random');
 const util = require('../lib/utils/util');
 const consensus = require('../lib/protocol/consensus');
@@ -22,12 +22,10 @@ const KeyRing = require('../lib/primitives/keyring');
 const Address = require('../lib/primitives/address');
 const BufferWriter = require('bufio').BufferWriter;
 const common = require('./util/common');
-const nodejsUtil = require('util');
 
-// test files: https://github.com/bitcoin/bitcoin/tree/master/src/test/data
-const validTests = require('./data/core-data/tx-valid.json');
-const invalidTests = require('./data/core-data/tx-invalid.json');
-const sighashTests = require('./data/core-data/sighash-tests.json');
+const validTests = require('./data/tx-valid.json');
+const invalidTests = require('./data/tx-invalid.json');
+const sighashTests = require('./data/sighash-tests.json');
 
 const tx1 = common.readTX('tx1');
 const tx2 = common.readTX('tx2');
@@ -71,7 +69,7 @@ function parseTXTest(data) {
   const view = new CoinView();
 
   for (const [txid, index, str, amount] of coins) {
-    const hash = util.fromRev(txid);
+    const hash = util.revHex(txid);
     const script = Script.fromString(str);
     const value = parseInt(amount || '0', 10);
 
@@ -108,7 +106,7 @@ function parseSighashTest(data) {
   const tx = TX.fromRaw(txHex, 'hex');
   const script = Script.fromRaw(scriptHex, 'hex');
 
-  const expected = util.fromRev(hash);
+  const expected = util.revHex(hash);
 
   let hex = type & 3;
 
@@ -132,7 +130,7 @@ function parseSighashTest(data) {
 }
 
 function createInput(value, view) {
-  const hash = random.randomBytes(32);
+  const hash = random.randomBytes(32).toString('hex');
 
   const input = {
     prevout: {
@@ -175,7 +173,7 @@ function sigopContext(scriptSig, witness, scriptPubkey) {
     spend.version = 1;
 
     const input = new Input();
-    input.prevout.hash = fund.hash();
+    input.prevout.hash = fund.hash('hex');
     input.prevout.index = 0;
     input.script = scriptSig;
     input.witness = witness;
@@ -237,7 +235,7 @@ describe('TX', function() {
       assert.strictEqual(tx.outputs.length, 1980);
       assert(tx.hasWitness());
       assert.notStrictEqual(tx.txid(), tx.wtxid());
-      assert.strictEqual(tx.witnessHash().toString('hex'),
+      assert.strictEqual(tx.witnessHash('hex'),
         '088c919cd8408005f255c411f786928385688a9e8fdb2db4c9bc3578ce8c94cf');
       assert.strictEqual(tx.getSize(), 62138);
       assert.strictEqual(tx.getVirtualSize(), 61813);
@@ -341,7 +339,7 @@ describe('TX', function() {
       it(`should get sighash of ${hash} (${hex}) ${suffix}`, () => {
         const subscript = script.getSubscript(0).removeSeparators();
         const hash = tx.signatureHash(index, subscript, 0, type, 0);
-        assert.bufferEqual(hash, expected);
+        assert.strictEqual(hash.toString('hex'), expected);
       });
     }
   }
@@ -697,7 +695,7 @@ describe('TX', function() {
       const output = Script.fromProgram(0, key.getKeyHash());
       const ctx = sigopContext(input, witness, output);
 
-      ctx.spend.inputs[0].prevout.hash = consensus.ZERO_HASH;
+      ctx.spend.inputs[0].prevout.hash = consensus.NULL_HASH;
       ctx.spend.inputs[0].prevout.index = 0xffffffff;
       ctx.spend.refresh();
 
@@ -901,11 +899,14 @@ describe('TX', function() {
     ];
 
     const hashesBuf = tx.getHashes(view);
+    const hashesHex = tx.getHashes(view, 'hex');
 
     assert.strictEqual(hashes.length, hashesBuf.length);
+    assert.strictEqual(hashes.length, hashesHex.length);
 
     hashes.forEach((hash, i) => {
       assert.bufferEqual(hash, hashesBuf[i]);
+      assert.strictEqual(hash.toString('hex'), hashesHex[i]);
     });
   });
 
@@ -918,11 +919,14 @@ describe('TX', function() {
     ];
 
     const hashesBuf = tx.getInputHashes(view);
+    const hashesHex = tx.getInputHashes(view, 'hex');
 
     assert.strictEqual(inputHashes.length, hashesBuf.length);
+    assert.strictEqual(inputHashes.length, hashesHex.length);
 
     inputHashes.forEach((hash, i) => {
       assert.bufferEqual(hash, hashesBuf[i]);
+      assert.strictEqual(hash.toString('hex'), hashesHex[i]);
     });
   });
 
@@ -936,11 +940,14 @@ describe('TX', function() {
     ];
 
     const hashesBuf = tx.getOutputHashes();
+    const hashesHex = tx.getOutputHashes('hex');
 
     assert.strictEqual(outputHashes.length, hashesBuf.length);
+    assert.strictEqual(outputHashes.length, hashesHex.length);
 
     outputHashes.forEach((hash, i) => {
       assert.bufferEqual(hash, hashesBuf[i]);
+      assert.strictEqual(hash.toString('hex'), hashesHex[i]);
     });
   });
 
@@ -956,7 +963,7 @@ describe('TX', function() {
 
     assert(expectedPrevouts.length, prevouts.length);
     expectedPrevouts.forEach((prevout, i) => {
-      assert.strictEqual(prevout, prevouts[i].toString('hex'));
+      assert.strictEqual(prevout, prevouts[i]);
     });
   });
 
@@ -1056,9 +1063,7 @@ describe('TX', function() {
     // hack for ChainEntry
     const entry = {
       height: 1000,
-      hash: Buffer.from(
-        'c82d447db6150d2308d9571c19bc3dc6efde97a8227d9e57bc77ec0900000000',
-        'hex'),
+      hash: 'c82d447db6150d2308d9571c19bc3dc6efde97a8227d9e57bc77ec0900000000',
       time: 1365870306
     };
     const network = 'testnet';
@@ -1112,14 +1117,5 @@ describe('TX', function() {
     const value2 = mtx2.getInputValue();
 
     assert.strictEqual(value1, value2);
-  });
-
-  it('should inspect TX', () => {
-    const tx = new TX();
-    const fmt = nodejsUtil.format(tx);
-    assert(typeof fmt === 'string');
-    assert(fmt.includes('hash'));
-    assert(fmt.includes('version'));
-    assert(fmt.includes('locktime'));
   });
 });

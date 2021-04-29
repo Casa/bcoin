@@ -1,8 +1,8 @@
 'use strict';
 
 const CoinView = require('../lib/coins/coinview');
-const BufferReader = require('bufio').BufferReader;
-const StaticWriter = require('bufio').StaticWriter;
+const BufferReader = require('../lib/utils/reader');
+const StaticWriter = require('../lib/utils/writer');
 const common = require('../test/util/common');
 const bench = require('./bench');
 

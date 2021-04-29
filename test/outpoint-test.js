@@ -3,11 +3,10 @@
 'use strict';
 
 const Outpoint = require('../lib/primitives/outpoint');
-const assert = require('bsert');
+const assert = require('./util/assert');
 const common = require('./util/common');
 const util = require('../lib/utils/util');
 const TX = require('../lib/primitives/tx');
-const nodejsUtil = require('util');
 const OUTPOINT_SIZE = 36;
 
 describe('Outpoint', () => {
@@ -45,8 +44,7 @@ describe('Outpoint', () => {
 
   it('should compare the indexes between outpoints', () => {
     const out1RevHash = out1.clone();
-    out1RevHash.hash = Buffer.from(out1RevHash.hash);
-    out1RevHash.hash[0] = 0;
+    out1RevHash.hash = out1RevHash.rhash();
 
     const out1AdjIndex = out1.clone();
     out1AdjIndex.index += 1;
@@ -68,18 +66,18 @@ describe('Outpoint', () => {
   });
 
   it('should retrieve little endian hash', () => {
-    assert.strictEqual(out1.rhash(), util.revHex(out1.hash));
-    assert.strictEqual(out1.txid(), util.revHex(out1.hash));
+    assert.equal(out1.rhash(), util.revHex(out1.hash));
+    assert.equal(out1.txid(), util.revHex(out1.hash));
   });
 
   it('should serialize to a key suitable for hash table', () => {
-    const expected = out1.toRaw();
+    const expected = out1.hash + out1.index;
     const actual = out1.toKey();
-    assert.bufferEqual(expected, actual);
+    assert.equal(expected, actual);
   });
 
   it('should inject properties from hash table key', () => {
-    const key = out1.toKey();
+    const key = out1.hash + out1.index;
     const fromKey = Outpoint.fromKey(key);
     assert(out1.equals(fromKey), true);
   });
@@ -114,16 +112,7 @@ describe('Outpoint', () => {
     const index = 0;
     const fromTX = Outpoint.fromTX(tx, index);
 
-    assert.bufferEqual(fromTX.hash, tx.hash());
-    assert.strictEqual(fromTX.index, index);
-  });
-
-  it('should inspect Outpoint', () => {
-    const outpoint = new Outpoint();
-    const fmt = nodejsUtil.format(outpoint);
-    assert(typeof fmt === 'string');
-    assert(fmt.includes('Outpoint'));
-    assert(fmt.includes(
-      '0000000000000000000000000000000000000000000000000000000000000000'));
+    assert.equal(fromTX.hash, tx.hash('hex'));
+    assert.equal(fromTX.index, index);
   });
 });

@@ -7,7 +7,7 @@ const MTX = require('../lib/primitives/mtx');
 const Outpoint = require('../lib/primitives/outpoint');
 
 function dummy() {
-  const hash = random.randomBytes(32);
+  const hash = random.randomBytes(32).toString('hex');
   return new Outpoint(hash, 0);
 }
 
@@ -37,7 +37,7 @@ const walletdb = new WalletDB({
     end(1000);
 
     for (const addr of result)
-      addrs.push(addr.receiveAddress());
+      addrs.push(addr.receive.getAddress());
   }
 
   // Keys

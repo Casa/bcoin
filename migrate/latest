@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-'use strict';
-
+const assert = require('assert');
+const fs = require('fs');
 const cp = require('child_process');
-const fs = require('bfile');
-const {resolve} = require('path');
+const res = require('path').resolve;
 const {argv} = process;
 
 if (argv.length < 3) {
@@ -12,6 +11,14 @@ if (argv.length < 3) {
   console.error('Example: $ ./migrate/latest ~/.bcoin');
   process.exit(1);
   return;
+}
+
+function mv(from, to) {
+  try {
+    fs.renameSync(from, to);
+  } catch (e) {
+    console.error(e.message);
+  }
 }
 
 function exec(file, ...args) {
@@ -32,16 +39,11 @@ function exec(file, ...args) {
 const node = argv[0];
 const prefix = argv[2];
 
-const chain = resolve(prefix, 'chain');
-const spvchain = resolve(prefix, 'spvchain');
+mv(res(prefix, 'chain.ldb'), res(prefix, 'chain'));
+mv(res(prefix, 'spvchain.ldb'), res(prefix, 'spvchain'));
+mv(res(prefix, 'mempool.ldb'), res(prefix, 'mempool'));
+mv(res(prefix, 'walletdb.ldb'), res(prefix, 'wallet'));
 
-(async () => {
-  if (await fs.exists(chain))
-    exec(node, resolve(__dirname, 'chaindb4to6.js'), chain);
-
-  if (await fs.exists(spvchain))
-    exec(node, resolve(__dirname, 'chaindb4to6.js'), spvchain);
-})().catch((err) => {
-  console.error(err.stack);
-  process.exit(1);
-});
+exec(node, res(__dirname, 'chaindb3to4.js'), res(prefix, 'chain'));
+exec(node, res(__dirname, 'chaindb3to4.js'), res(prefix, 'spvchain'));
+exec(node, res(__dirname, 'walletdb6to7.js'), res(prefix, 'wallet'));

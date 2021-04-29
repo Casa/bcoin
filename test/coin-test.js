@@ -4,9 +4,8 @@
 'use strict';
 
 const Coin = require('../lib/primitives/coin');
-const assert = require('bsert');
+const assert = require('./util/assert');
 const common = require('../test/util/common');
-const nodejsUtil = require('util');
 
 const tx1 = common.readTX('tx1');
 const coin1 = common.readFile('coin1.raw');
@@ -39,13 +38,5 @@ describe('Coin', function() {
     assert.strictEqual(coin.height, 0);
     assert.strictEqual(coin.coinbase, false);
     assert.strictEqual(coin.index, 0);
-  });
-
-  it('should inspect Coin', () => {
-    const coin = new Coin();
-    const fmt = nodejsUtil.format(coin);
-    assert(typeof fmt === 'string');
-    assert(fmt.includes('coinbase'));
-    assert(fmt.includes('script'));
   });
 });

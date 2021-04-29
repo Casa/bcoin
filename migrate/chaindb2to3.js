@@ -18,10 +18,9 @@ if (process.argv.indexOf('-h') !== -1
 const assert = require('assert');
 const bdb = require('bdb');
 const hash256 = require('bcrypto/lib/hash256');
-const BN = require('bcrypto/lib/bn.js');
+const BN = require('bn.js');
 const bio = require('bufio');
 const LRU = require('blru');
-const {BufferMap} = require('buffer-map');
 const util = require('../lib/utils/util');
 const OldCoins = require('./coins/coins');
 const OldUndoCoins = require('./coins/undocoins');
@@ -54,18 +53,18 @@ const STATE_ENTRY = 3;
 const STATE_FINAL = 4;
 const STATE_DONE = 5;
 
-const metaCache = new BufferMap();
-const lruCache = new LRU(200000, null, BufferMap);
+const metaCache = new Map();
+const lruCache = new LRU(200000);
 
 function writeJournal(batch, state, hash) {
   const data = Buffer.allocUnsafe(34);
 
   if (!hash)
-    hash = consensus.ZERO_HASH;
+    hash = consensus.NULL_HASH;
 
   data[0] = MIGRATION_ID;
   data[1] = state;
-  hash.copy(data, 2);
+  data.write(hash, 2, 'hex');
 
   batch.put(JOURNAL_KEY, data);
 }
@@ -74,7 +73,7 @@ async function readJournal() {
   const data = await db.get(JOURNAL_KEY);
 
   if (!data)
-    return [STATE_VERSION, consensus.ZERO_HASH];
+    return [STATE_VERSION, consensus.NULL_HASH];
 
   if (data.length !== 34)
     throw new Error('Bad migration length.');
@@ -83,7 +82,7 @@ async function readJournal() {
     throw new Error('Bad migration id.');
 
   const state = data.readUInt8(1, true);
-  const hash = data.slice(2, 34);
+  const hash = data.toString('hex', 2, 34);
 
   console.log('Reading journal.');
   console.log('Recovering from state %d.', state);
@@ -119,7 +118,7 @@ async function updateVersion() {
 
   await batch.write();
 
-  return [STATE_UNDO, consensus.ZERO_HASH];
+  return [STATE_UNDO, consensus.NULL_HASH];
 }
 
 async function reserializeUndo(hash) {
@@ -127,7 +126,7 @@ async function reserializeUndo(hash) {
 
   const height = tip.height;
 
-  if (!hash.equals(consensus.ZERO_HASH))
+  if (hash !== consensus.NULL_HASH)
     tip = await getEntry(hash);
 
   console.log('Reserializing undo coins from tip %s.',
@@ -255,12 +254,12 @@ async function reserializeUndo(hash) {
     'Reserialized %d undo records (%d coins).',
     total, totalCoins);
 
-  return [STATE_CLEANUP, consensus.ZERO_HASH];
+  return [STATE_CLEANUP, consensus.NULL_HASH];
 }
 
 async function cleanupIndex() {
   if (hasSPV)
-    return [STATE_COINS, consensus.ZERO_HASH];
+    return [STATE_COINS, consensus.NULL_HASH];
 
   const iter = db.iterator({
     gte: pair(0x01, consensus.ZERO_HASH),
@@ -291,12 +290,12 @@ async function cleanupIndex() {
 
   console.log('Cleaned up %d undo records.', total);
 
-  return [STATE_COINS, consensus.ZERO_HASH];
+  return [STATE_COINS, consensus.NULL_HASH];
 }
 
 async function reserializeCoins(hash) {
   if (hasSPV)
-    return [STATE_ENTRY, consensus.ZERO_HASH];
+    return [STATE_ENTRY, consensus.NULL_HASH];
 
   const iter = db.iterator({
     gte: pair('c', hash),
@@ -307,7 +306,7 @@ async function reserializeCoins(hash) {
 
   let start = true;
 
-  if (!hash.equals(consensus.ZERO_HASH)) {
+  if (hash !== consensus.NULL_HASH) {
     const item = await iter.next();
     if (!item)
       start = false;
@@ -327,7 +326,7 @@ async function reserializeCoins(hash) {
     if (item.key.length !== 33)
       continue;
 
-    const hash = item.key.slice(1, 33);
+    const hash = item.key.toString('hex', 1, 33);
     const old = OldCoins.fromRaw(item.value, hash);
 
     let update = false;
@@ -368,7 +367,7 @@ async function reserializeCoins(hash) {
 
   console.log('Reserialized %d coins.', total);
 
-  return [STATE_ENTRY, consensus.ZERO_HASH];
+  return [STATE_ENTRY, consensus.NULL_HASH];
 }
 
 async function reserializeEntries(hash) {
@@ -380,7 +379,7 @@ async function reserializeEntries(hash) {
 
   let start = true;
 
-  if (!hash.equals(consensus.ZERO_HASH)) {
+  if (hash !== consensus.NULL_HASH) {
     const item = await iter.next();
     if (!item)
       start = false;
@@ -419,7 +418,7 @@ async function reserializeEntries(hash) {
 
   console.log('Reserialized %d entries.', total);
 
-  return [STATE_FINAL, consensus.ZERO_HASH];
+  return [STATE_FINAL, consensus.NULL_HASH];
 }
 
 async function finalize() {
@@ -455,7 +454,7 @@ async function finalize() {
 
   await db.compactRange();
 
-  return [STATE_DONE, consensus.ZERO_HASH];
+  return [STATE_DONE, consensus.NULL_HASH];
 }
 
 async function getMeta(coin, prevout) {
@@ -539,7 +538,7 @@ async function getTip() {
 async function getTipHash() {
   const state = await db.get('R');
   assert(state);
-  return state.slice(0, 32);
+  return state.toString('hex', 0, 32);
 }
 
 async function getEntry(hash) {
@@ -567,7 +566,7 @@ async function isIndexed() {
 }
 
 async function isMainChain(entry, tip) {
-  if (entry.hash.equals(tip))
+  if (entry.hash === tip)
     return true;
 
   if (await db.get(pair('n', entry.hash)))
@@ -583,10 +582,10 @@ function entryFromRaw(data) {
   br.seek(-80);
 
   const entry = {};
-  entry.hash = hash.toString();
+  entry.hash = hash.toString('hex');
   entry.version = br.readU32();
-  entry.prevBlock = br.readHash();
-  entry.merkleRoot = br.readHash();
+  entry.prevBlock = br.readHash('hex');
+  entry.merkleRoot = br.readHash('hex');
   entry.time = br.readU32();
   entry.bits = br.readU32();
   entry.nonce = br.readU32();
@@ -612,9 +611,10 @@ function entryToRaw(entry, main) {
   return bw.render();
 }
 
-function write(data, hash, off) {
-  assert(Buffer.isBuffer(hash));
-  return hash.copy(data, off);
+function write(data, str, off) {
+  if (Buffer.isBuffer(str))
+    return str.copy(data, off);
+  return data.write(str, off, 'hex');
 }
 
 function pair(prefix, hash) {
@@ -682,7 +682,7 @@ reserializeEntries;
   //   [state, hash] = await reserializeEntries(hash);
 
   if (state === STATE_ENTRY)
-    [state, hash] = [STATE_FINAL, consensus.ZERO_HASH];
+    [state, hash] = [STATE_FINAL, consensus.NULL_HASH];
 
   if (state === STATE_FINAL)
     [state, hash] = await finalize();

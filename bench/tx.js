@@ -84,7 +84,7 @@ const tx10 = common.readTX('tx10');
   const end = bench('input hashes');
 
   for (let i = 0; i < 10000; i++)
-    tx.getInputHashes();
+    tx.getInputHashes(null, 'hex');
 
   end(10000);
 }
@@ -94,7 +94,7 @@ const tx10 = common.readTX('tx10');
   const end = bench('output hashes');
 
   for (let i = 0; i < 10000; i++)
-    tx.getOutputHashes();
+    tx.getOutputHashes('hex');
 
   end(10000);
 }
@@ -104,7 +104,7 @@ const tx10 = common.readTX('tx10');
   const end = bench('all hashes');
 
   for (let i = 0; i < 10000; i++)
-    tx.getHashes();
+    tx.getHashes(null, 'hex');
 
   end(10000);
 }
@@ -156,7 +156,7 @@ const mtx = new MTX();
 for (let i = 0; i < 100; i++) {
   mtx.addInput({
     prevout: {
-      hash: consensus.ZERO_HASH,
+      hash: consensus.NULL_HASH,
       index: 0
     },
     script: new Script()
@@ -176,7 +176,7 @@ const tx2 = mtx.toTX();
   const end = bench('input hashes');
 
   for (let i = 0; i < 10000; i++)
-    tx2.getInputHashes();
+    tx2.getInputHashes(null, 'hex');
 
   end(10000);
 }
@@ -185,7 +185,7 @@ const tx2 = mtx.toTX();
   const end = bench('output hashes');
 
   for (let i = 0; i < 10000; i++)
-    tx2.getOutputHashes();
+    tx2.getOutputHashes('hex');
 
   end(10000);
 }
@@ -194,7 +194,7 @@ const tx2 = mtx.toTX();
   const end = bench('all hashes');
 
   for (let i = 0; i < 10000; i++)
-    tx2.getHashes();
+    tx2.getHashes(null, 'hex');
 
   end(10000);
 }

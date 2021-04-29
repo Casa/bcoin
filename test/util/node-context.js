@@ -1,6 +1,6 @@
 'use strict';
 
-const assert = require('bsert');
+const assert = require('assert');
 const FullNode = require('../../lib/node/fullnode');
 const Network = require('../../lib/protocol/network');
 const Logger = require('blgr');

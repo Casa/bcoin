@@ -3,7 +3,7 @@
 
 'use strict';
 
-const assert = require('bsert');
+const assert = require('./util/assert');
 const Mnemonic = require('../lib/hd/mnemonic');
 const HDPrivateKey = require('../lib/hd/private');
 

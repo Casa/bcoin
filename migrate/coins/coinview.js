@@ -9,7 +9,6 @@
 'use strict';
 
 const assert = require('assert');
-const {BufferMap} = require('buffer-map');
 const Coins = require('./coins');
 const UndoCoins = require('./undocoins');
 const CoinEntry = Coins.CoinEntry;
@@ -27,7 +26,7 @@ function CoinView() {
   if (!(this instanceof CoinView))
     return new CoinView();
 
-  this.map = new BufferMap();
+  this.map = new Map();
   this.undo = new UndoCoins();
 }
 
