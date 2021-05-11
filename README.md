@@ -50,7 +50,7 @@ bpkg --browser --name bcoin --umd --output browser-new/bcoin.js ../bcoin-browser
 ```
 Once compiled, a function within the shared lib, bcrypto must be modified to remove a safety check. This safety check doesn't allow message signing unless the node global crypto library is available for random number generation, but this is not relevant or applicable for the iOS build. 
 
-So, search the compile library for a method called 'getRandomValues' and replace the code with the following method
+So, search the compile library for a method called 'getRandomValues' and replace the code with the following method, which was copied from an older version of bcoin.
 
 ```
 /// OLD METHOD
