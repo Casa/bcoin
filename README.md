@@ -46,7 +46,7 @@ Note! Seed phrase generation should not take place through the bcoin lib on iOS 
 ```
 npm install
 npm install bpkg
-bpkg --browser --name bcoin --umd --output browser-new/bcoin-2.js ../bcoin-browser.js
+bpkg --browser --name bcoin --umd --output browser-new/bcoin.js ../bcoin-browser.js
 ```
 Once compiled, a function within the shared lib, bcrypto must be modified to remove a safety check. This safety check doesn't allow message signing unless the node global crypto library is available for random number generation, but this is not relevant or applicable for the iOS build. 
 
