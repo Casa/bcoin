@@ -10,11 +10,36 @@ Bcoin is well tested and aware of all known consensus rules. It is currently
 used in production as the consensus backend and wallet system for
 [purse.io][purse].
 
-## iOS Branch
 
-This branch of bcoin is used specifically by the iOS Casa App to handle key derivations and signing.
+## Uses
 
-Note! Seed phrase generation should not take place through the bcoin lib due to the lack of strong entropy generation.
+- Full Node
+- SPV Node
+- Wallet Backend
+- Mining Backend (getblocktemplate support)
+- Layer 2 Backend (lightning)
+- General Purpose Bitcoin Library
+
+Try it in the browser: [https://bcoin.io/browser/](https://bcoin.io/browser/)
+
+## Install
+
+```
+$ git clone git://github.com/bcoin-org/bcoin.git
+$ cd bcoin
+$ npm rebuild
+$ ./bin/bcoin
+```
+
+See the [Getting started][guide] guide for more in-depth installation
+instructions, including verifying releases. If you're upgrading, see the
+latest changes via the [Changelog][changelog].
+
+## Build for iOS
+
+This fork of bcoin is used by the iOS Casa App to handle key derivations and signing.
+
+Note! Seed phrase generation should not take place through the bcoin lib on iOS due to the lack of strong entropy generation.
 
 ### Compiling
 
@@ -78,31 +103,6 @@ function getRandomValues(array) {
 npm install uglify-js
 uglifyjs ../bcoin.js -o ../bcoin-min.js
 ```
-
-
-## Uses
-
-- Full Node
-- SPV Node
-- Wallet Backend
-- Mining Backend (getblocktemplate support)
-- Layer 2 Backend (lightning)
-- General Purpose Bitcoin Library
-
-Try it in the browser: [https://bcoin.io/browser/](https://bcoin.io/browser/)
-
-## Install
-
-```
-$ git clone git://github.com/bcoin-org/bcoin.git
-$ cd bcoin
-$ npm rebuild
-$ ./bin/bcoin
-```
-
-See the [Getting started][guide] guide for more in-depth installation
-instructions, including verifying releases. If you're upgrading, see the
-latest changes via the [Changelog][changelog].
 
 ## Documentation
 
